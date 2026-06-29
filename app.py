@@ -10,11 +10,11 @@ st.set_page_config(page_title="Sistem Faskes Terpadu", page_icon="🏥", layout=
 # ==========================================
 # 1. SETUP DATABASE (EXCEL)
 # ==========================================
-DB_PASIEN = 'db_pasien.xlsx'
-DB_ANTRIAN = 'db_antrian.xlsx'
-DB_DOKTER = 'db_dokter.xlsx'
-DB_REKAM_MEDIS = 'db_rekam_medis.xlsx'
-DB_FASILITAS = 'db_fasilitas.xlsx'
+DB_PASIEN = 'db_pasien_v2.xlsx'
+DB_ANTRIAN = 'db_antrian_v2.xlsx'
+DB_DOKTER = 'db_dokter_v2.xlsx'
+DB_REKAM_MEDIS = 'db_rekam_medis_v2.xlsx'
+DB_FASILITAS = 'db_fasilitas_v2.xlsx'
 
 def init_db(file_name, columns):
     if not os.path.exists(file_name):
