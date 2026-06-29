@@ -38,14 +38,12 @@ face_model = load_model()
 """
 
 def ekstrak_fitur_wajah(image_buffer):
-    # TODO: Logika asli ekstraksi wajah
     return str(np.random.rand(128).tolist()) 
 
 def verifikasi_wajah(image_buffer):
     df = pd.read_excel(DB_PASIEN)
     if df.empty:
         return False, "", ""
-    # Simulasi return
     return True, df.iloc[0]['Nama'], df.iloc[0]['Alamat']
 
 # ==========================================
@@ -76,7 +74,6 @@ tab_pasien, tab_admin, tab_dokter = st.tabs(["🧑‍🤝‍🧑 Area Pasien", "
 # TAB 1: PASIEN
 # ---------------------------------
 with tab_pasien:
-    # Menampilkan Status Fasilitas untuk pasien
     with st.expander("📊 Lihat Informasi Ketersediaan Fasilitas Rawat Inap", expanded=False):
         df_fas_view = pd.read_excel(DB_FASILITAS)
         if not df_fas_view.empty:
@@ -135,19 +132,14 @@ with tab_pasien:
                 
                 if jenis_pasien == "Rujukan":
                     df_rm = pd.read_excel(DB_REKAM_MEDIS)
-                    # Cari rekam medis rujukan ke faskes yang dipilih
                     rujukan = df_rm[(df_rm['Nama_Pasien'] == st.session_state.p_nama) & (df_rm['Rujukan_Tujuan'] == faskes_pilih)]
                     
                     if not rujukan.empty:
-                        # Ambil data rujukan paling baru
                         data_terakhir = rujukan.iloc[-1]
                         faskes_asal = data_terakhir['Faskes']
                         diagnosis_asal = data_terakhir['Diagnosis']
-                        
                         catatan_rujukan = f"[RUJUKAN dari {faskes_asal}] - Rekam Medis: {diagnosis_asal}"
                         layanan_pilih = "Poli Rujukan Otomatis"
-                        
-                        # Tampilkan notifikasi rekam medis ke pasien
                         st.success(f"✅ Data Rujukan Ditemukan!\n\n**Faskes Asal:** {faskes_asal}\n**Diagnosis Sebelumnya:** {diagnosis_asal}")
                     else:
                         st.error(f"Tidak ditemukan surat rujukan untuk {st.session_state.p_nama} ke {faskes_pilih}.")
@@ -180,7 +172,6 @@ with tab_pasien:
 # TAB 2: ADMIN FASKES
 # ---------------------------------
 with tab_admin:
-    # Daftar kredensial admin dan Faskes-nya
     akun_admin = {
         "puskesmasA": {"pwd": "sehatceria123", "faskes": "Puskesmas A"},
         "RumahsakitB": {"pwd": "sehatceria123", "faskes": "RSUD B"}
@@ -214,7 +205,6 @@ with tab_admin:
             with st.form("form_dokter"):
                 u_dok = st.text_input("Username Dokter")
                 p_dok = st.text_input("Password", type="password")
-                # Faskes dikunci sesuai login admin
                 st.text_input("Faskes Penempatan", value=admin_faskes, disabled=True)
                 
                 if st.form_submit_button("Daftarkan Dokter"):
@@ -226,7 +216,6 @@ with tab_admin:
                     
             st.markdown("**2. Update Fasilitas Rawat Inap**")
             with st.form("form_fasilitas"):
-                # Faskes dikunci sesuai login admin
                 st.text_input("Faskes", value=admin_faskes, disabled=True)
                 kapasitas = st.number_input("Total Kapasitas Bed", min_value=0)
                 terisi = st.number_input("Bed Terisi", min_value=0)
@@ -243,7 +232,6 @@ with tab_admin:
         with col2:
             st.markdown(f"**Pantau Antrian - {admin_faskes}**")
             df_antri = pd.read_excel(DB_ANTRIAN)
-            # Filter hanya antrian untuk faskes admin yang login
             df_antri_filter = df_antri[df_antri['Faskes'] == admin_faskes]
             st.dataframe(df_antri_filter, use_container_width=True, hide_index=True)
             
@@ -287,17 +275,29 @@ with tab_dokter:
             st.info("Saat ini tidak ada antrian pasien.")
         else:
             pilih_pasien = st.selectbox("Pilih Pasien dari Antrian", pasien_tunggu['Nama_Pasien'].tolist())
-            
-            # Ambil data pasien yang dipilih
             data_pilih = pasien_tunggu[pasien_tunggu['Nama_Pasien'] == pilih_pasien].iloc[0]
             
-            # Tampilkan informasi pasien ke dokter
+            # 1. PERBAIKAN: Bersihkan nilai 'nan' pada kolom keluhan
+            keluhan_mentah = data_pilih['Keluhan']
+            keluhan_bersih = "-" if pd.isna(keluhan_mentah) or str(keluhan_mentah).lower() == 'nan' or str(keluhan_mentah) == "" else str(keluhan_mentah)
+            
+            # 2. PERBAIKAN: Ambil riwayat rujukan langsung dari database rekam medis, bukan dari antrean
+            df_rm_all = pd.read_excel(DB_REKAM_MEDIS)
+            # Cek apakah ada data di mana pasien ini dirujuk ke faskes dokter yang sedang login
+            riwayat_rujukan = df_rm_all[(df_rm_all['Nama_Pasien'] == pilih_pasien) & (df_rm_all['Rujukan_Tujuan'] == st.session_state.faskes_dokter)]
+            
+            if not riwayat_rujukan.empty:
+                # Jika ada rujukan, ambil data yang paling terakhir
+                data_rm_lama = riwayat_rujukan.iloc[-1]
+                info_rm_sebelumnya = f"Rujukan dari: {data_rm_lama['Faskes']}\nDiagnosis Sebelumnya: {data_rm_lama['Diagnosis']}"
+            else:
+                info_rm_sebelumnya = "Bukan Pasien Rujukan / Tidak ada data riwayat rujukan ke faskes ini."
+            
             colA, colB = st.columns(2)
             with colA:
-                st.text_area("Keluhan Pasien", value=data_pilih['Keluhan'], disabled=True)
+                st.text_area("Keluhan Pasien (Dari Pendaftaran)", value=keluhan_bersih, disabled=True)
             with colB:
-                # Menampilkan riwayat rujukan ke dokter jika ada
-                st.text_area("Informasi Rujukan Sebelumnya", value=data_pilih['Status_Rujukan'] if data_pilih['Status_Rujukan'] else "Bukan Pasien Rujukan", disabled=True)
+                st.text_area("Informasi Rujukan Sebelumnya", value=info_rm_sebelumnya, disabled=True)
             
             with st.form("form_pemeriksaan"):
                 diagnosis = st.text_area("Catatan Rekam Medis / Diagnosis Baru")
