@@ -18,14 +18,21 @@ DB_FASILITAS = 'db_fasilitas.xlsx'
 
 def init_db(file_name, columns):
     if not os.path.exists(file_name):
+        # Buat file baru jika belum ada
         pd.DataFrame(columns=columns).to_excel(file_name, index=False)
-
-# Penambahan kolom Alamat, Keluhan, dan Status Periksa
-init_db(DB_PASIEN, ['ID', 'Nama', 'Alamat', 'Face_Embedding'])
-init_db(DB_ANTRIAN, ['ID_Antrian', 'Nama_Pasien', 'Faskes', 'Jenis', 'Poli', 'Keluhan', 'Status_Rujukan', 'Status_Periksa'])
-init_db(DB_DOKTER, ['Username', 'Password', 'Faskes'])
-init_db(DB_REKAM_MEDIS, ['Nama_Pasien', 'Faskes', 'Diagnosis', 'Rujukan_Tujuan'])
-init_db(DB_FASILITAS, ['Faskes', 'Kapasitas_Rawat_Inap', 'Terisi', 'Status_Penuh'])
+    else:
+        # Jika file sudah ada, cek apakah ada kolom yang kurang
+        df = pd.read_excel(file_name)
+        missing_cols = [col for col in columns if col not in df.columns]
+        if missing_cols:
+            for col in missing_cols:
+                # Tambahkan kolom baru yang kosong atau default
+                if col == 'Status_Periksa':
+                    df[col] = 'Belum'
+                else:
+                    df[col] = "" 
+            # Simpan kembali file dengan kolom yang sudah di-update
+            df.to_excel(file_name, index=False)
 
 # ==========================================
 # 2. LOAD MODEL PENDETEKSI WAJAH (.pkl)
